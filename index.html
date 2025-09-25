@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="减肥日历">
+    <title>减肥日历表 - 体重记录</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💪 减肥日历表</h1>
+            <p>记录每日体重，追踪减肥进度</p>
+        </header>
+
+        <div class="controls">
+            <div class="date-selector">
+                <label for="month-select">选择月份：</label>
+                <select id="month-select">
+                    <option value="2024-01">2024年1月</option>
+                    <option value="2024-02">2024年2月</option>
+                    <option value="2024-03">2024年3月</option>
+                    <option value="2024-04">2024年4月</option>
+                    <option value="2024-05">2024年5月</option>
+                    <option value="2024-06">2024年6月</option>
+                    <option value="2024-07">2024年7月</option>
+                    <option value="2024-08">2024年8月</option>
+                    <option value="2024-09">2024年9月</option>
+                    <option value="2024-10">2024年10月</option>
+                    <option value="2024-11">2024年11月</option>
+                    <option value="2024-12">2024年12月</option>
+                </select>
+            </div>
+            
+            <div class="weight-input">
+                <label for="weight">今日体重 (kg)：</label>
+                <input type="number" id="weight" step="0.1" min="0" max="300" placeholder="请输入体重">
+                <button id="save-weight">记录体重</button>
+            </div>
+        </div>
+
+        <div class="calendar-container">
+            <div class="calendar-header">
+                <div class="day-header">日</div>
+                <div class="day-header">一</div>
+                <div class="day-header">二</div>
+                <div class="day-header">三</div>
+                <div class="day-header">四</div>
+                <div class="day-header">五</div>
+                <div class="day-header">六</div>
+            </div>
+            <div id="calendar" class="calendar"></div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <h3>本月统计</h3>
+                <div class="stat-item">
+                    <span>记录天数：</span>
+                    <span id="recorded-days">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>初始体重：</span>
+                    <span id="initial-weight">--</span> kg
+                </div>
+                <div class="stat-item">
+                    <span>当前体重：</span>
+                    <span id="current-weight">--</span> kg
+                </div>
+                <div class="stat-item">
+                    <span>体重变化：</span>
+                    <span id="weight-change">--</span> kg
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h3>体重趋势图</h3>
+            <canvas id="weight-chart" width="800" height="300"></canvas>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
