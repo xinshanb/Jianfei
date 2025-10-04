@@ -11,6 +11,12 @@
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon-192.png">
+    <!-- Leaflet地图库 -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet路由插件 -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -67,6 +73,17 @@
                         <span class="feature-tag">体重记录</span>
                         <span class="feature-tag">趋势图表</span>
                         <span class="feature-tag">PWA支持</span>
+                    </div>
+                </div>
+
+                <div class="app-card" onclick="showApp('travel')">
+                    <div class="app-icon">✈️</div>
+                    <h3>旅行规划器</h3>
+                    <p>规划旅行路线，在地图上显示行程</p>
+                    <div class="app-features">
+                        <span class="feature-tag">路线规划</span>
+                        <span class="feature-tag">地图显示</span>
+                        <span class="feature-tag">行程管理</span>
                     </div>
                 </div>
             </div>
@@ -215,6 +232,89 @@
                 <div class="chart-container">
                     <h3>体重趋势图</h3>
                     <canvas id="weight-chart" width="800" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 旅行规划器页面 -->
+        <div id="travelPage" class="page">
+            <nav class="app-nav">
+                <button onclick="showApp('home')" class="nav-btn">← 返回首页</button>
+                <h2>✈️ 旅行规划器</h2>
+                <button onclick="logout()" class="logout-btn">退出登录</button>
+            </nav>
+
+            <div class="app-content">
+                <div class="travel-controls">
+                    <div class="trip-input-section">
+                        <h3>添加行程</h3>
+                        <div class="input-group">
+                            <label for="locationInput">地点名称：</label>
+                            <input type="text" id="locationInput" placeholder="例如：北京天安门" autocomplete="off">
+                        </div>
+                        <div class="input-group">
+                            <label for="dateInput">到达日期：</label>
+                            <input type="date" id="dateInput">
+                        </div>
+                        <div class="input-group">
+                            <label for="timeInput">到达时间：</label>
+                            <input type="time" id="timeInput">
+                        </div>
+                        <div class="input-group">
+                            <label for="notesInput">备注：</label>
+                            <textarea id="notesInput" placeholder="添加备注信息..." rows="2"></textarea>
+                        </div>
+                        <button id="addLocationBtn" class="add-location-btn">添加地点</button>
+                    </div>
+
+                    <div class="trip-list-section">
+                        <h3>行程列表</h3>
+                        <div id="tripList" class="trip-list">
+                            <div class="empty-trip">
+                                <p>还没有添加任何行程</p>
+                                <p>请在上方添加您要访问的地点</p>
+                            </div>
+                        </div>
+                        <div class="trip-actions">
+                            <button id="clearTripBtn" class="clear-trip-btn">清空行程</button>
+                            <button id="optimizeRouteBtn" class="optimize-route-btn">优化路线</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="map-section">
+                    <h3>路线地图</h3>
+                    <div id="mapContainer" class="map-container">
+                        <div id="map" class="map"></div>
+                        <div class="map-controls">
+                            <button id="centerMapBtn" class="map-control-btn">居中显示</button>
+                            <button id="toggleSatelliteBtn" class="map-control-btn">卫星视图</button>
+                            <button id="fitBoundsBtn" class="map-control-btn">适应范围</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="route-info-section">
+                    <h3>路线信息</h3>
+                    <div id="routeInfo" class="route-info">
+                        <div class="route-summary">
+                            <div class="summary-item">
+                                <span class="label">总距离：</span>
+                                <span id="totalDistance">--</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">预计时间：</span>
+                                <span id="totalTime">--</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">途经地点：</span>
+                                <span id="locationCount">0</span> 个
+                            </div>
+                        </div>
+                        <div id="routeDetails" class="route-details">
+                            <p>请添加至少2个地点来查看路线</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

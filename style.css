@@ -891,6 +891,349 @@ canvas {
     }
 }
 
+/* 旅行规划器样式 */
+.travel-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.trip-input-section, .trip-list-section {
+    background: white;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.trip-input-section h3, .trip-list-section h3 {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 1.3em;
+    border-bottom: 2px solid #667eea;
+    padding-bottom: 10px;
+}
+
+.trip-input-section .input-group {
+    margin-bottom: 20px;
+}
+
+.trip-input-section .input-group label {
+    display: block;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.trip-input-section input, .trip-input-section textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.3s ease;
+    box-sizing: border-box;
+}
+
+.trip-input-section input:focus, .trip-input-section textarea:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.add-location-btn {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    width: 100%;
+}
+
+.add-location-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.trip-list {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+}
+
+.empty-trip {
+    text-align: center;
+    color: #666;
+    padding: 40px 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 2px dashed #ddd;
+}
+
+.trip-item {
+    background: #f8f9ff;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 10px;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.trip-item:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.trip-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.trip-location {
+    font-weight: bold;
+    color: #333;
+    font-size: 1.1em;
+}
+
+.trip-order {
+    background: #667eea;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+.trip-datetime {
+    color: #666;
+    font-size: 0.9em;
+    margin-bottom: 5px;
+}
+
+.trip-notes {
+    color: #555;
+    font-size: 0.9em;
+    font-style: italic;
+}
+
+.trip-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.clear-trip-btn, .optimize-route-btn {
+    flex: 1;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.clear-trip-btn {
+    background: #f44336;
+    color: white;
+    box-shadow: 0 3px 10px rgba(244, 67, 54, 0.3);
+}
+
+.clear-trip-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(244, 67, 54, 0.4);
+}
+
+.optimize-route-btn {
+    background: #4caf50;
+    color: white;
+    box-shadow: 0 3px 10px rgba(76, 175, 80, 0.3);
+}
+
+.optimize-route-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+}
+
+.map-section {
+    background: white;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.map-section h3 {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 1.3em;
+    border-bottom: 2px solid #667eea;
+    padding-bottom: 10px;
+}
+
+.map-container {
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.map {
+    width: 100%;
+    height: 400px;
+    background: #f0f0f0;
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Leaflet地图样式覆盖 */
+.leaflet-container {
+    height: 100%;
+    width: 100%;
+    border-radius: 8px;
+}
+
+.leaflet-popup-content-wrapper {
+    border-radius: 8px;
+}
+
+.leaflet-popup-content {
+    margin: 8px 12px;
+    line-height: 1.4;
+}
+
+.leaflet-routing-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.leaflet-routing-alt {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.map-controls {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 5px;
+    z-index: 1000;
+}
+
+.map-control-btn {
+    background: white;
+    border: 1px solid #ddd;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.map-control-btn:hover {
+    background: #f5f5f5;
+    transform: translateY(-1px);
+}
+
+.route-info-section {
+    background: white;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.route-info-section h3 {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 1.3em;
+    border-bottom: 2px solid #667eea;
+    padding-bottom: 10px;
+}
+
+.route-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: #f8f9ff;
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+}
+
+.summary-item .label {
+    font-weight: bold;
+    color: #333;
+}
+
+.summary-item span:last-child {
+    color: #667eea;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.route-details {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.route-details p {
+    margin: 0;
+    color: #666;
+    text-align: center;
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+    .travel-controls {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .trip-input-section, .trip-list-section, .map-section, .route-info-section {
+        padding: 20px;
+    }
+    
+    .map {
+        height: 300px;
+    }
+    
+    .route-summary {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .trip-actions {
+        flex-direction: column;
+    }
+    
+    .map-controls {
+        position: static;
+        margin-top: 10px;
+        justify-content: center;
+    }
+}
+
 /* 超小屏幕优化 */
 @media (max-width: 480px) {
     .app-content {
@@ -915,5 +1258,13 @@ canvas {
     
     .stat-item {
         font-size: 14px;
+    }
+    
+    .trip-input-section, .trip-list-section, .map-section, .route-info-section {
+        padding: 15px;
+    }
+    
+    .map {
+        height: 250px;
     }
 }

@@ -1,6 +1,7 @@
 // 全局变量
 let beadGenerator = null;
 let weightTracker = null;
+let travelPlanner = null;
 const CORRECT_PASSWORD = '0258747';
 
 // 页面切换函数
@@ -28,6 +29,8 @@ function showApp(appName) {
             beadGenerator = new BeadPatternGenerator();
         } else if (appName === 'weight' && !weightTracker) {
             weightTracker = new WeightTracker();
+        } else if (appName === 'travel' && !travelPlanner) {
+            travelPlanner = new TravelPlanner();
         }
     }
 }
@@ -820,6 +823,569 @@ class WeightTracker {
 
     saveWeightData() {
         localStorage.setItem('weightTrackerData', JSON.stringify(this.weightData));
+    }
+}
+
+// 旅行规划器
+class TravelPlanner {
+    constructor() {
+        this.tripLocations = [];
+        this.map = null;
+        this.markers = [];
+        this.routeControl = null;
+        this.isSatelliteView = false;
+        this.mapInitialized = false;
+        this.init();
+    }
+
+    init() {
+        this.setupEventListeners();
+        this.loadTripData();
+        this.initializeMap();
+        this.updateTripList();
+        this.updateRouteInfo();
+    }
+
+    setupEventListeners() {
+        // 添加地点按钮
+        document.getElementById('addLocationBtn').addEventListener('click', () => {
+            this.addLocation();
+        });
+
+        // 回车键添加地点
+        document.getElementById('locationInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.addLocation();
+            }
+        });
+
+        // 清空行程按钮
+        document.getElementById('clearTripBtn').addEventListener('click', () => {
+            this.clearTrip();
+        });
+
+        // 优化路线按钮
+        document.getElementById('optimizeRouteBtn').addEventListener('click', () => {
+            this.optimizeRoute();
+        });
+
+        // 地图控制按钮
+        document.getElementById('centerMapBtn').addEventListener('click', () => {
+            this.centerMap();
+        });
+
+        document.getElementById('toggleSatelliteBtn').addEventListener('click', () => {
+            this.toggleSatelliteView();
+        });
+
+        document.getElementById('fitBoundsBtn').addEventListener('click', () => {
+            this.fitBounds();
+        });
+
+        // 设置默认日期为今天
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('dateInput').value = today;
+    }
+
+    addLocation() {
+        const locationInput = document.getElementById('locationInput');
+        const dateInput = document.getElementById('dateInput');
+        const timeInput = document.getElementById('timeInput');
+        const notesInput = document.getElementById('notesInput');
+
+        const location = locationInput.value.trim();
+        const date = dateInput.value;
+        const time = timeInput.value;
+        const notes = notesInput.value.trim();
+
+        if (!location) {
+            this.showMessage('请输入地点名称！', 'error');
+            return;
+        }
+
+        if (!date) {
+            this.showMessage('请选择到达日期！', 'error');
+            return;
+        }
+
+        // 创建地点对象
+        const tripLocation = {
+            id: Date.now(),
+            location: location,
+            date: date,
+            time: time || '12:00',
+            notes: notes,
+            coordinates: null // 将在获取地理编码后填充
+        };
+
+        this.tripLocations.push(tripLocation);
+        this.saveTripData();
+        this.updateTripList();
+        this.updateRouteInfo();
+
+        // 清空输入框
+        locationInput.value = '';
+        notesInput.value = '';
+
+        // 获取地理编码
+        this.geocodeLocation(tripLocation);
+    }
+
+    async geocodeLocation(tripLocation) {
+        try {
+            // 使用Nominatim API进行地理编码（免费）
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(tripLocation.location)}&limit=1`
+            );
+            const data = await response.json();
+
+            if (data && data.length > 0) {
+                tripLocation.coordinates = {
+                    lat: parseFloat(data[0].lat),
+                    lng: parseFloat(data[0].lon)
+                };
+                this.saveTripData();
+                this.updateMap();
+            } else {
+                this.showMessage(`无法找到地点：${tripLocation.location}`, 'error');
+            }
+        } catch (error) {
+            console.error('地理编码错误:', error);
+            this.showMessage('获取地点坐标失败，请检查网络连接', 'error');
+        }
+    }
+
+    updateTripList() {
+        const tripList = document.getElementById('tripList');
+        
+        if (this.tripLocations.length === 0) {
+            tripList.innerHTML = `
+                <div class="empty-trip">
+                    <p>还没有添加任何行程</p>
+                    <p>请在上方添加您要访问的地点</p>
+                </div>
+            `;
+            return;
+        }
+
+        tripList.innerHTML = this.tripLocations.map((location, index) => `
+            <div class="trip-item" data-id="${location.id}">
+                <div class="trip-item-header">
+                    <span class="trip-location">${location.location}</span>
+                    <span class="trip-order">${index + 1}</span>
+                </div>
+                <div class="trip-datetime">${location.date} ${location.time}</div>
+                ${location.notes ? `<div class="trip-notes">${location.notes}</div>` : ''}
+            </div>
+        `).join('');
+    }
+
+    initializeMap() {
+        const mapContainer = document.getElementById('map');
+        
+        // 显示地图加载提示
+        mapContainer.innerHTML = `
+            <div style="text-align: center; color: #666; padding: 50px;">
+                <div style="font-size: 24px; margin-bottom: 10px;">🗺️</div>
+                <div>正在加载地图...</div>
+                <div style="font-size: 12px; margin-top: 5px;">请稍候</div>
+            </div>
+        `;
+
+        // 延迟初始化地图，确保DOM完全加载
+        setTimeout(() => {
+            this.initLeafletMap();
+        }, 500);
+    }
+
+    initLeafletMap() {
+        try {
+            // 初始化地图，默认中心点为中国
+            this.map = L.map('map', {
+                center: [39.9042, 116.4074], // 北京坐标
+                zoom: 4,
+                zoomControl: true,
+                attributionControl: true
+            });
+
+            // 添加地图图层
+            this.addMapLayers();
+            
+            this.mapInitialized = true;
+            this.updateMap();
+            
+            // 添加地图加载完成事件
+            this.map.whenReady(() => {
+                console.log('地图加载完成');
+            });
+
+        } catch (error) {
+            console.error('地图初始化失败:', error);
+            this.showMapError();
+        }
+    }
+
+    addMapLayers() {
+        // 标准地图图层
+        this.standardLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        });
+
+        // 卫星图层（使用Esri的卫星图）
+        this.satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '© <a href="https://www.esri.com/">Esri</a>',
+            maxZoom: 19
+        });
+
+        // 默认添加标准图层
+        this.standardLayer.addTo(this.map);
+    }
+
+    showMapError() {
+        const mapContainer = document.getElementById('map');
+        mapContainer.innerHTML = `
+            <div style="text-align: center; color: #f44336; padding: 50px;">
+                <div style="font-size: 24px; margin-bottom: 10px;">⚠️</div>
+                <div>地图加载失败</div>
+                <div style="font-size: 12px; margin-top: 5px;">请检查网络连接</div>
+            </div>
+        `;
+    }
+
+    updateMap() {
+        if (!this.mapInitialized || !this.map) {
+            return;
+        }
+
+        // 清除现有标记和路线
+        this.clearMapMarkers();
+        this.clearRoute();
+
+        // 过滤出有坐标的地点
+        const locationsWithCoords = this.tripLocations.filter(loc => loc.coordinates);
+        
+        if (locationsWithCoords.length === 0) {
+            return;
+        }
+
+        // 添加地点标记
+        this.addMarkersToMap(locationsWithCoords);
+
+        // 添加路线
+        if (locationsWithCoords.length > 1) {
+            this.addRouteToMap(locationsWithCoords);
+        }
+
+        // 调整地图视图
+        this.fitMapToLocations(locationsWithCoords);
+    }
+
+    clearMapMarkers() {
+        this.markers.forEach(marker => {
+            this.map.removeLayer(marker);
+        });
+        this.markers = [];
+    }
+
+    clearRoute() {
+        if (this.routeControl) {
+            this.map.removeControl(this.routeControl);
+            this.routeControl = null;
+        }
+    }
+
+    addMarkersToMap(locations) {
+        locations.forEach((location, index) => {
+            // 创建自定义图标
+            const icon = L.divIcon({
+                className: 'custom-marker',
+                html: `
+                    <div style="
+                        background: #667eea; 
+                        color: white; 
+                        padding: 8px 12px; 
+                        border-radius: 20px; 
+                        font-size: 12px; 
+                        font-weight: bold; 
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                        white-space: nowrap;
+                        border: 2px solid white;
+                        position: relative;
+                    ">
+                        ${index + 1}. ${location.location}
+                        <div style="
+                            position: absolute;
+                            bottom: -8px;
+                            left: 50%;
+                            transform: translateX(-50%);
+                            width: 0;
+                            height: 0;
+                            border-left: 8px solid transparent;
+                            border-right: 8px solid transparent;
+                            border-top: 8px solid #667eea;
+                        "></div>
+                    </div>
+                `,
+                iconSize: [120, 40],
+                iconAnchor: [60, 40]
+            });
+
+            // 创建标记
+            const marker = L.marker([location.coordinates.lat, location.coordinates.lng], { icon: icon });
+            
+            // 添加弹出窗口
+            const popupContent = `
+                <div style="min-width: 200px;">
+                    <h4 style="margin: 0 0 8px 0; color: #333;">${location.location}</h4>
+                    <p style="margin: 4px 0; color: #666; font-size: 14px;">
+                        <strong>日期：</strong>${location.date}
+                    </p>
+                    <p style="margin: 4px 0; color: #666; font-size: 14px;">
+                        <strong>时间：</strong>${location.time}
+                    </p>
+                    ${location.notes ? `<p style="margin: 4px 0; color: #555; font-size: 13px; font-style: italic;">${location.notes}</p>` : ''}
+                    <p style="margin: 4px 0; color: #999; font-size: 12px;">
+                        坐标：${location.coordinates.lat.toFixed(4)}, ${location.coordinates.lng.toFixed(4)}
+                    </p>
+                </div>
+            `;
+            
+            marker.bindPopup(popupContent);
+            marker.addTo(this.map);
+            this.markers.push(marker);
+        });
+    }
+
+    addRouteToMap(locations) {
+        // 准备路线点
+        const waypoints = locations.map(location => 
+            L.latLng(location.coordinates.lat, location.coordinates.lng)
+        );
+
+        // 创建路线控制
+        this.routeControl = L.Routing.control({
+            waypoints: waypoints,
+            routeWhileDragging: false,
+            addWaypoints: false,
+            createMarker: function() { return null; }, // 不创建默认标记
+            lineOptions: {
+                styles: [
+                    {
+                        color: '#667eea',
+                        weight: 4,
+                        opacity: 0.8
+                    }
+                ]
+            },
+            show: false, // 隐藏路线详情面板
+            collapsible: false
+        }).addTo(this.map);
+
+        // 监听路线计算完成事件
+        this.routeControl.on('routesfound', (e) => {
+            const routes = e.routes;
+            if (routes && routes.length > 0) {
+                const route = routes[0];
+                this.updateRouteInfo(route);
+            }
+        });
+    }
+
+    fitMapToLocations(locations) {
+        if (locations.length === 0) return;
+
+        if (locations.length === 1) {
+            // 只有一个地点，居中显示
+            this.map.setView([locations[0].coordinates.lat, locations[0].coordinates.lng], 10);
+        } else {
+            // 多个地点，适应范围显示
+            const group = new L.featureGroup(this.markers);
+            this.map.fitBounds(group.getBounds().pad(0.1));
+        }
+    }
+
+    centerMap() {
+        if (!this.mapInitialized || !this.map) {
+            this.showMessage('地图未初始化！', 'error');
+            return;
+        }
+
+        const locationsWithCoords = this.tripLocations.filter(loc => loc.coordinates);
+        if (locationsWithCoords.length === 0) {
+            this.showMessage('请先添加地点！', 'error');
+            return;
+        }
+
+        this.fitMapToLocations(locationsWithCoords);
+        this.showMessage('地图已居中显示', 'success');
+    }
+
+    toggleSatelliteView() {
+        if (!this.mapInitialized || !this.map) {
+            this.showMessage('地图未初始化！', 'error');
+            return;
+        }
+
+        this.isSatelliteView = !this.isSatelliteView;
+        
+        // 清除当前图层
+        this.map.eachLayer(layer => {
+            if (layer instanceof L.TileLayer) {
+                this.map.removeLayer(layer);
+            }
+        });
+
+        // 添加新图层
+        if (this.isSatelliteView) {
+            this.satelliteLayer.addTo(this.map);
+        } else {
+            this.standardLayer.addTo(this.map);
+        }
+
+        this.showMessage(`已切换到${this.isSatelliteView ? '卫星' : '地图'}视图`, 'success');
+    }
+
+    fitBounds() {
+        if (!this.mapInitialized || !this.map) {
+            this.showMessage('地图未初始化！', 'error');
+            return;
+        }
+
+        const locationsWithCoords = this.tripLocations.filter(loc => loc.coordinates);
+        if (locationsWithCoords.length === 0) {
+            this.showMessage('请先添加地点！', 'error');
+            return;
+        }
+
+        this.fitMapToLocations(locationsWithCoords);
+        this.showMessage('地图已适应范围显示', 'success');
+    }
+
+    optimizeRoute() {
+        if (this.tripLocations.length < 2) {
+            this.showMessage('至少需要2个地点才能优化路线！', 'error');
+            return;
+        }
+
+        // 简单的路线优化：按日期排序
+        this.tripLocations.sort((a, b) => {
+            const dateA = new Date(a.date + ' ' + a.time);
+            const dateB = new Date(b.date + ' ' + b.time);
+            return dateA - dateB;
+        });
+
+        this.saveTripData();
+        this.updateTripList();
+        this.updateMap();
+        this.showMessage('路线已优化！', 'success');
+    }
+
+    clearTrip() {
+        if (this.tripLocations.length === 0) {
+            this.showMessage('行程列表已经是空的！', 'error');
+            return;
+        }
+
+        if (confirm('确定要清空所有行程吗？')) {
+            this.tripLocations = [];
+            this.saveTripData();
+            this.updateTripList();
+            this.updateMap();
+            this.updateRouteInfo();
+            this.showMessage('行程已清空！', 'success');
+        }
+    }
+
+    updateRouteInfo(route = null) {
+        const locationCount = this.tripLocations.length;
+        const locationsWithCoords = this.tripLocations.filter(loc => loc.coordinates);
+        
+        document.getElementById('locationCount').textContent = locationCount;
+        
+        if (locationsWithCoords.length < 2) {
+            document.getElementById('totalDistance').textContent = '--';
+            document.getElementById('totalTime').textContent = '--';
+            document.getElementById('routeDetails').innerHTML = '<p>请添加至少2个地点来查看路线</p>';
+            return;
+        }
+
+        if (route) {
+            // 使用真实路线数据
+            const totalDistance = (route.summary.totalDistance / 1000).toFixed(1); // 转换为公里
+            const totalTime = Math.round(route.summary.totalTime / 60); // 转换为分钟
+            
+            document.getElementById('totalDistance').textContent = `${totalDistance} km`;
+            document.getElementById('totalTime').textContent = `${totalTime} 分钟`;
+        } else {
+            // 使用简化计算
+            let totalDistance = 0;
+            for (let i = 0; i < locationsWithCoords.length - 1; i++) {
+                const distance = this.calculateDistance(
+                    locationsWithCoords[i].coordinates,
+                    locationsWithCoords[i + 1].coordinates
+                );
+                totalDistance += distance;
+            }
+
+            // 估算时间（假设平均速度50km/h）
+            const estimatedTime = Math.round(totalDistance / 50 * 60); // 分钟
+
+            document.getElementById('totalDistance').textContent = `${totalDistance.toFixed(1)} km`;
+            document.getElementById('totalTime').textContent = `${estimatedTime} 分钟`;
+        }
+
+        // 显示详细路线
+        const routeDetails = locationsWithCoords.map((location, index) => 
+            `${index + 1}. ${location.location} (${location.date} ${location.time})`
+        ).join('<br>');
+        
+        document.getElementById('routeDetails').innerHTML = routeDetails;
+    }
+
+    calculateDistance(coord1, coord2) {
+        // 使用Haversine公式计算两点间距离
+        const R = 6371; // 地球半径（公里）
+        const dLat = (coord2.lat - coord1.lat) * Math.PI / 180;
+        const dLon = (coord2.lng - coord1.lng) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(coord1.lat * Math.PI / 180) * Math.cos(coord2.lat * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    }
+
+    showMessage(message, type) {
+        // 移除现有消息
+        const existingMessage = document.querySelector('.success-message, .error-message');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+
+        // 创建新消息
+        const messageDiv = document.createElement('div');
+        messageDiv.className = type === 'success' ? 'success-message' : 'error-message';
+        messageDiv.textContent = message;
+        
+        // 插入到控制区域
+        const controls = document.querySelector('.travel-controls');
+        controls.appendChild(messageDiv);
+
+        // 3秒后自动移除
+        setTimeout(() => {
+            if (messageDiv.parentNode) {
+                messageDiv.remove();
+            }
+        }, 3000);
+    }
+
+    loadTripData() {
+        const data = localStorage.getItem('travelPlannerData');
+        this.tripLocations = data ? JSON.parse(data) : [];
+    }
+
+    saveTripData() {
+        localStorage.setItem('travelPlannerData', JSON.stringify(this.tripLocations));
     }
 }
 
