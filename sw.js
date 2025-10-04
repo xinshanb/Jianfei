@@ -1,4 +1,4 @@
-const CACHE_NAME = 'weight-tracker-v1';
+const CACHE_NAME = 'multi-tool-v1';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -64,3 +64,4 @@ self.addEventListener('fetch', event => {
       })
   );
 });
+

@@ -1,3 +1,412 @@
+// 全局变量
+let beadGenerator = null;
+let weightTracker = null;
+const CORRECT_PASSWORD = '0258747';
+
+// 页面切换函数
+function showApp(appName) {
+    // 检查登录状态
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    if (!isLoggedIn) {
+        // 如果未登录，强制返回登录页面
+        showLoginPage();
+        return;
+    }
+    
+    // 隐藏所有页面
+    document.querySelectorAll('.page').forEach(page => {
+        page.classList.remove('active');
+    });
+    
+    // 显示目标页面
+    const targetPage = document.getElementById(appName + 'Page');
+    if (targetPage) {
+        targetPage.classList.add('active');
+        
+        // 初始化对应的应用
+        if (appName === 'bead' && !beadGenerator) {
+            beadGenerator = new BeadPatternGenerator();
+        } else if (appName === 'weight' && !weightTracker) {
+            weightTracker = new WeightTracker();
+        }
+    }
+}
+
+// 显示登录页面
+function showLoginPage() {
+    document.querySelectorAll('.page').forEach(page => {
+        page.classList.remove('active');
+    });
+    document.getElementById('loginPage').classList.add('active');
+}
+
+// 全局退出登录函数
+function logout() {
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    if (isLoggedIn) {
+        localStorage.removeItem('isLoggedIn');
+        showLoginPage();
+        document.getElementById('passwordInput').value = '';
+    }
+}
+
+// 登录功能
+class LoginManager {
+    constructor() {
+        this.isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+        this.initializeLogin();
+    }
+
+    initializeLogin() {
+        const passwordInput = document.getElementById('passwordInput');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginMessage = document.getElementById('loginMessage');
+
+        // 登录按钮事件
+        loginBtn.addEventListener('click', () => {
+            this.handleLogin();
+        });
+
+        // 回车键登录
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.handleLogin();
+            }
+        });
+
+        // 如果已经登录，直接进入主页
+        if (this.isLoggedIn) {
+            this.showHomePage();
+        }
+    }
+
+    handleLogin() {
+        const passwordInput = document.getElementById('passwordInput');
+        const loginMessage = document.getElementById('loginMessage');
+        const password = passwordInput.value.trim();
+
+        if (password === CORRECT_PASSWORD) {
+            this.isLoggedIn = true;
+            localStorage.setItem('isLoggedIn', 'true');
+            this.showMessage('登录成功！', 'success');
+            setTimeout(() => {
+                this.showHomePage();
+            }, 1000);
+        } else {
+            this.showMessage('密码错误，请重新输入！', 'error');
+            passwordInput.value = '';
+            passwordInput.focus();
+        }
+    }
+
+    showMessage(message, type) {
+        const loginMessage = document.getElementById('loginMessage');
+        loginMessage.textContent = message;
+        loginMessage.className = `login-message ${type} show`;
+        
+        setTimeout(() => {
+            loginMessage.classList.remove('show');
+        }, 3000);
+    }
+
+    showHomePage() {
+        document.getElementById('loginPage').classList.remove('active');
+        document.getElementById('homePage').classList.add('active');
+    }
+
+    logout() {
+        this.isLoggedIn = false;
+        localStorage.removeItem('isLoggedIn');
+        showLoginPage();
+        document.getElementById('passwordInput').value = '';
+    }
+}
+
+// 拼豆画生成器
+class BeadPatternGenerator {
+    constructor() {
+        this.originalImage = null;
+        this.previewCanvas = document.getElementById('previewCanvas');
+        this.resultCanvas = document.getElementById('resultCanvas');
+        this.previewCtx = this.previewCanvas.getContext('2d');
+        this.resultCtx = this.resultCanvas.getContext('2d');
+        
+        this.width = 20;
+        this.height = 20;
+        this.offsetX = 0;
+        this.offsetY = 0;
+        this.scale = 1;
+        
+        this.initializeEventListeners();
+    }
+
+    initializeEventListeners() {
+        // 文件上传
+        const uploadArea = document.getElementById('uploadArea');
+        const imageInput = document.getElementById('imageInput');
+        
+        uploadArea.addEventListener('click', () => imageInput.click());
+        uploadArea.addEventListener('dragover', this.handleDragOver.bind(this));
+        uploadArea.addEventListener('dragleave', this.handleDragLeave.bind(this));
+        uploadArea.addEventListener('drop', this.handleDrop.bind(this));
+        imageInput.addEventListener('change', this.handleFileSelect.bind(this));
+
+        // 控制参数
+        document.getElementById('widthInput').addEventListener('input', this.updateWidth.bind(this));
+        document.getElementById('heightInput').addEventListener('input', this.updateHeight.bind(this));
+        document.getElementById('offsetX').addEventListener('input', this.updateOffsetX.bind(this));
+        document.getElementById('offsetY').addEventListener('input', this.updateOffsetY.bind(this));
+        document.getElementById('scaleInput').addEventListener('input', this.updateScale.bind(this));
+
+        // 生成按钮
+        document.getElementById('generateBtn').addEventListener('click', this.generatePattern.bind(this));
+        
+        // 下载和打印按钮
+        document.getElementById('downloadBtn').addEventListener('click', this.downloadPattern.bind(this));
+        document.getElementById('printBtn').addEventListener('click', this.printPattern.bind(this));
+    }
+
+    handleDragOver(e) {
+        e.preventDefault();
+        e.currentTarget.classList.add('dragover');
+    }
+
+    handleDragLeave(e) {
+        e.preventDefault();
+        e.currentTarget.classList.remove('dragover');
+    }
+
+    handleDrop(e) {
+        e.preventDefault();
+        e.currentTarget.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            this.loadImage(files[0]);
+        }
+    }
+
+    handleFileSelect(e) {
+        const file = e.target.files[0];
+        if (file) {
+            this.loadImage(file);
+        }
+    }
+
+    loadImage(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                this.originalImage = img;
+                this.updatePreview();
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    updateWidth(e) {
+        this.width = parseInt(e.target.value);
+        this.updatePreview();
+    }
+
+    updateHeight(e) {
+        this.height = parseInt(e.target.value);
+        this.updatePreview();
+    }
+
+    updateOffsetX(e) {
+        this.offsetX = parseInt(e.target.value);
+        document.getElementById('offsetXValue').textContent = this.offsetX;
+        this.updatePreview();
+    }
+
+    updateOffsetY(e) {
+        this.offsetY = parseInt(e.target.value);
+        document.getElementById('offsetYValue').textContent = this.offsetY;
+        this.updatePreview();
+    }
+
+    updateScale(e) {
+        this.scale = parseFloat(e.target.value);
+        document.getElementById('scaleValue').textContent = this.scale.toFixed(1);
+        this.updatePreview();
+    }
+
+    updatePreview() {
+        if (!this.originalImage) return;
+
+        const canvas = this.previewCanvas;
+        const ctx = this.previewCtx;
+        
+        // 设置画布大小
+        const maxSize = 400;
+        const aspectRatio = this.originalImage.width / this.originalImage.height;
+        let canvasWidth, canvasHeight;
+        
+        if (aspectRatio > 1) {
+            canvasWidth = maxSize;
+            canvasHeight = maxSize / aspectRatio;
+        } else {
+            canvasHeight = maxSize;
+            canvasWidth = maxSize * aspectRatio;
+        }
+        
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        
+        // 绘制原图
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        ctx.drawImage(this.originalImage, 0, 0, canvasWidth, canvasHeight);
+        
+        // 绘制网格预览
+        this.drawGridPreview(ctx, canvasWidth, canvasHeight);
+    }
+
+    drawGridPreview(ctx, canvasWidth, canvasHeight) {
+        const cellWidth = canvasWidth / this.width;
+        const cellHeight = canvasHeight / this.height;
+        
+        ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+        ctx.lineWidth = 1;
+        
+        // 绘制网格线
+        for (let i = 0; i <= this.width; i++) {
+            const x = i * cellWidth;
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, canvasHeight);
+            ctx.stroke();
+        }
+        
+        for (let i = 0; i <= this.height; i++) {
+            const y = i * cellHeight;
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(canvasWidth, y);
+            ctx.stroke();
+        }
+    }
+
+    generatePattern() {
+        if (!this.originalImage) {
+            alert('请先上传图片！');
+            return;
+        }
+
+        const canvas = this.resultCanvas;
+        const ctx = this.resultCtx;
+        
+        // 设置画布大小（每个豆子20x20像素）
+        const beadSize = 20;
+        canvas.width = this.width * beadSize;
+        canvas.height = this.height * beadSize;
+        
+        // 创建临时画布来处理图片
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        
+        // 计算缩放后的图片尺寸
+        const scaledWidth = this.originalImage.width * this.scale;
+        const scaledHeight = this.originalImage.height * this.scale;
+        
+        tempCanvas.width = scaledWidth;
+        tempCanvas.height = scaledHeight;
+        
+        // 绘制缩放后的图片
+        tempCtx.drawImage(this.originalImage, 0, 0, scaledWidth, scaledHeight);
+        
+        // 获取图片数据
+        const imageData = tempCtx.getImageData(0, 0, scaledWidth, scaledHeight);
+        const data = imageData.data;
+        
+        // 清空结果画布
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // 生成拼豆图案
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                // 计算在缩放图片中的采样位置
+                const sampleX = Math.floor((x / this.width) * scaledWidth + this.offsetX);
+                const sampleY = Math.floor((y / this.height) * scaledHeight + this.offsetY);
+                
+                // 确保采样位置在图片范围内
+                if (sampleX >= 0 && sampleX < scaledWidth && sampleY >= 0 && sampleY < scaledHeight) {
+                    const pixelIndex = (sampleY * scaledWidth + sampleX) * 4;
+                    const r = data[pixelIndex];
+                    const g = data[pixelIndex + 1];
+                    const b = data[pixelIndex + 2];
+                    const a = data[pixelIndex + 3];
+                    
+                    if (a > 128) { // 只处理不透明的像素
+                        // 绘制豆子
+                        const beadX = x * beadSize;
+                        const beadY = y * beadSize;
+                        
+                        // 绘制豆子的圆形效果
+                        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                        ctx.fillRect(beadX, beadY, beadSize, beadSize);
+                        
+                        // 添加高光效果
+                        const gradient = ctx.createRadialGradient(
+                            beadX + beadSize * 0.3, beadY + beadSize * 0.3, 0,
+                            beadX + beadSize * 0.3, beadY + beadSize * 0.3, beadSize * 0.5
+                        );
+                        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+                        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                        ctx.fillStyle = gradient;
+                        ctx.fillRect(beadX, beadY, beadSize, beadSize);
+                        
+                        // 绘制边框
+                        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(beadX, beadY, beadSize, beadSize);
+                    }
+                }
+            }
+        }
+        
+        // 显示结果区域
+        document.getElementById('resultSection').style.display = 'block';
+        document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    downloadPattern() {
+        const canvas = this.resultCanvas;
+        const link = document.createElement('a');
+        link.download = '拼豆图纸.png';
+        link.href = canvas.toDataURL();
+        link.click();
+    }
+
+    printPattern() {
+        const canvas = this.resultCanvas;
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>拼豆图纸</title>
+                    <style>
+                        body { margin: 0; padding: 20px; text-align: center; }
+                        img { max-width: 100%; height: auto; }
+                        @media print {
+                            body { margin: 0; padding: 0; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h2>拼豆图纸</h2>
+                    <p>尺寸: ${this.width} × ${this.height} 豆子</p>
+                    <img src="${canvas.toDataURL()}" alt="拼豆图纸">
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+    }
+}
+
+// 减肥日历表
 class WeightTracker {
     constructor() {
         this.currentMonth = new Date().toISOString().slice(0, 7);
@@ -429,5 +838,22 @@ if ('serviceWorker' in navigator) {
 
 // 初始化应用
 document.addEventListener('DOMContentLoaded', () => {
-    new WeightTracker();
+    // 首先检查登录状态
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    
+    // 强制检查：无论什么情况，如果未登录就显示登录页面
+    if (!isLoggedIn) {
+        showLoginPage();
+    }
+    
+    // 初始化登录管理器
+    const loginManager = new LoginManager();
+    
+    // 添加定期检查登录状态的机制
+    setInterval(() => {
+        const currentLoginState = localStorage.getItem('isLoggedIn') === 'true';
+        if (!currentLoginState) {
+            showLoginPage();
+        }
+    }, 1000); // 每秒检查一次
 });

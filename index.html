@@ -6,83 +6,217 @@
     <meta name="theme-color" content="#667eea">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="减肥日历">
-    <title>减肥日历表 - 体重记录</title>
+    <meta name="apple-mobile-web-app-title" content="多功能工具集">
+    <title>多功能工具集 - 拼豆画生成器 & 减肥日历表</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>💪 减肥日历表</h1>
-            <p>记录每日体重，追踪减肥进度</p>
-        </header>
-
-        <div class="controls">
-            <div class="date-selector">
-                <label for="month-select">选择月份：</label>
-                <select id="month-select">
-                    <option value="2024-01">2024年1月</option>
-                    <option value="2024-02">2024年2月</option>
-                    <option value="2024-03">2024年3月</option>
-                    <option value="2024-04">2024年4月</option>
-                    <option value="2024-05">2024年5月</option>
-                    <option value="2024-06">2024年6月</option>
-                    <option value="2024-07">2024年7月</option>
-                    <option value="2024-08">2024年8月</option>
-                    <option value="2024-09">2024年9月</option>
-                    <option value="2024-10">2024年10月</option>
-                    <option value="2024-11">2024年11月</option>
-                    <option value="2024-12">2024年12月</option>
-                </select>
-            </div>
-            
-            <div class="weight-input">
-                <label for="weight">今日体重 (kg)：</label>
-                <input type="number" id="weight" step="0.1" min="0" max="300" placeholder="请输入体重">
-                <button id="save-weight">记录体重</button>
-            </div>
-        </div>
-
-        <div class="calendar-container">
-            <div class="calendar-header">
-                <div class="day-header">日</div>
-                <div class="day-header">一</div>
-                <div class="day-header">二</div>
-                <div class="day-header">三</div>
-                <div class="day-header">四</div>
-                <div class="day-header">五</div>
-                <div class="day-header">六</div>
-            </div>
-            <div id="calendar" class="calendar"></div>
-        </div>
-
-        <div class="stats">
-            <div class="stat-card">
-                <h3>本月统计</h3>
-                <div class="stat-item">
-                    <span>记录天数：</span>
-                    <span id="recorded-days">0</span>
-                </div>
-                <div class="stat-item">
-                    <span>初始体重：</span>
-                    <span id="initial-weight">--</span> kg
-                </div>
-                <div class="stat-item">
-                    <span>当前体重：</span>
-                    <span id="current-weight">--</span> kg
-                </div>
-                <div class="stat-item">
-                    <span>体重变化：</span>
-                    <span id="weight-change">--</span> kg
+    <div class="app-container">
+        <!-- 登录页面 -->
+        <div id="loginPage" class="page active">
+            <div class="login-container">
+                <div class="login-card">
+                    <div class="login-header">
+                        <h1>🔐 访问验证</h1>
+                        <p>请输入密码以访问多功能工具集</p>
+                    </div>
+                    
+                    <div class="login-form">
+                        <div class="input-group">
+                            <label for="passwordInput">密码：</label>
+                            <input type="password" id="passwordInput" placeholder="请输入访问密码" autocomplete="off">
+                        </div>
+                        <button id="loginBtn" class="login-btn">登录</button>
+                        <div id="loginMessage" class="login-message"></div>
+                    </div>
+                    
+                    <div class="login-footer">
+                        <p>拼豆画生成器 & 减肥日历表</p>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="chart-container">
-            <h3>体重趋势图</h3>
-            <canvas id="weight-chart" width="800" height="300"></canvas>
+        <!-- 主页面 -->
+        <div id="homePage" class="page">
+            <header>
+                <h1>🛠️ 多功能工具集</h1>
+                <p>拼豆画生成器 & 减肥日历表</p>
+                <button onclick="logout()" class="logout-btn">退出登录</button>
+            </header>
+
+            <div class="app-grid">
+                <div class="app-card" onclick="showApp('bead')">
+                    <div class="app-icon">🎨</div>
+                    <h3>拼豆画生成器</h3>
+                    <p>将图片转换为拼豆图纸</p>
+                    <div class="app-features">
+                        <span class="feature-tag">图片上传</span>
+                        <span class="feature-tag">像素化</span>
+                        <span class="feature-tag">图纸生成</span>
+                    </div>
+                </div>
+
+                <div class="app-card" onclick="showApp('weight')">
+                    <div class="app-icon">💪</div>
+                    <h3>减肥日历表</h3>
+                    <p>记录体重，追踪减肥进度</p>
+                    <div class="app-features">
+                        <span class="feature-tag">体重记录</span>
+                        <span class="feature-tag">趋势图表</span>
+                        <span class="feature-tag">PWA支持</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-info">
+                <p>支持离线使用，可添加到手机桌面</p>
+            </div>
+        </div>
+
+        <!-- 拼豆画生成器页面 -->
+        <div id="beadPage" class="page">
+            <nav class="app-nav">
+                <button onclick="showApp('home')" class="nav-btn">← 返回首页</button>
+                <h2>🎨 拼豆画生成器</h2>
+                <button onclick="logout()" class="logout-btn">退出登录</button>
+            </nav>
+
+            <div class="app-content">
+                <div class="upload-section">
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-content">
+                            <div class="upload-icon">📁</div>
+                            <p>点击或拖拽上传图片</p>
+                            <input type="file" id="imageInput" accept="image/*" style="display: none;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="controls-section">
+                    <div class="control-group">
+                        <label for="widthInput">横向豆子个数:</label>
+                        <input type="number" id="widthInput" value="20" min="1" max="100">
+                    </div>
+                    <div class="control-group">
+                        <label for="heightInput">纵向豆子个数:</label>
+                        <input type="number" id="heightInput" value="20" min="1" max="100">
+                    </div>
+                    <div class="control-group">
+                        <label for="offsetX">水平偏移:</label>
+                        <input type="range" id="offsetX" min="-50" max="50" value="0">
+                        <span id="offsetXValue">0</span>
+                    </div>
+                    <div class="control-group">
+                        <label for="offsetY">垂直偏移:</label>
+                        <input type="range" id="offsetY" min="-50" max="50" value="0">
+                        <span id="offsetYValue">0</span>
+                    </div>
+                    <div class="control-group">
+                        <label for="scaleInput">缩放比例:</label>
+                        <input type="range" id="scaleInput" min="0.1" max="3" step="0.1" value="1">
+                        <span id="scaleValue">1.0</span>
+                    </div>
+                    <button id="generateBtn" class="generate-btn">生成拼豆图纸</button>
+                </div>
+
+                <div class="preview-section">
+                    <h3>预览</h3>
+                    <div class="canvas-container">
+                        <canvas id="previewCanvas"></canvas>
+                    </div>
+                </div>
+
+                <div class="result-section" id="resultSection" style="display: none;">
+                    <h3>拼豆图纸</h3>
+                    <div class="result-container">
+                        <canvas id="resultCanvas"></canvas>
+                    </div>
+                    <div class="download-section">
+                        <button id="downloadBtn" class="download-btn">下载图纸</button>
+                        <button id="printBtn" class="print-btn">打印图纸</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 减肥日历表页面 -->
+        <div id="weightPage" class="page">
+            <nav class="app-nav">
+                <button onclick="showApp('home')" class="nav-btn">← 返回首页</button>
+                <h2>💪 减肥日历表</h2>
+                <button onclick="logout()" class="logout-btn">退出登录</button>
+            </nav>
+
+            <div class="app-content">
+                <div class="controls">
+                    <div class="date-selector">
+                        <label for="month-select">选择月份：</label>
+                        <select id="month-select">
+                            <option value="2024-01">2024年1月</option>
+                            <option value="2024-02">2024年2月</option>
+                            <option value="2024-03">2024年3月</option>
+                            <option value="2024-04">2024年4月</option>
+                            <option value="2024-05">2024年5月</option>
+                            <option value="2024-06">2024年6月</option>
+                            <option value="2024-07">2024年7月</option>
+                            <option value="2024-08">2024年8月</option>
+                            <option value="2024-09">2024年9月</option>
+                            <option value="2024-10">2024年10月</option>
+                            <option value="2024-11">2024年11月</option>
+                            <option value="2024-12">2024年12月</option>
+                        </select>
+                    </div>
+                    
+                    <div class="weight-input">
+                        <label for="weight">今日体重 (kg)：</label>
+                        <input type="number" id="weight" step="0.1" min="0" max="300" placeholder="请输入体重">
+                        <button id="save-weight">记录体重</button>
+                    </div>
+                </div>
+
+                <div class="calendar-container">
+                    <div class="calendar-header">
+                        <div class="day-header">日</div>
+                        <div class="day-header">一</div>
+                        <div class="day-header">二</div>
+                        <div class="day-header">三</div>
+                        <div class="day-header">四</div>
+                        <div class="day-header">五</div>
+                        <div class="day-header">六</div>
+                    </div>
+                    <div id="calendar" class="calendar"></div>
+                </div>
+
+                <div class="stats">
+                    <div class="stat-card">
+                        <h3>本月统计</h3>
+                        <div class="stat-item">
+                            <span>记录天数：</span>
+                            <span id="recorded-days">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span>初始体重：</span>
+                            <span id="initial-weight">--</span> kg
+                        </div>
+                        <div class="stat-item">
+                            <span>当前体重：</span>
+                            <span id="current-weight">--</span> kg
+                        </div>
+                        <div class="stat-item">
+                            <span>体重变化：</span>
+                            <span id="weight-change">--</span> kg
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3>体重趋势图</h3>
+                    <canvas id="weight-chart" width="800" height="300"></canvas>
+                </div>
+            </div>
         </div>
     </div>
 
